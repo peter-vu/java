@@ -14,7 +14,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 	@Autowired
-	private ReaderRepository readerRepository;
+	private ReaderRepository  readerRepository;
 	
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
@@ -37,7 +37,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 			.userDetailsService(new UserDetailsService() {
 				@Override
 				public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-					return readerRepository.findOne(username);
+					return readerRepository.findById(username).get();
 				}
 			});
 	}

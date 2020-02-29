@@ -3,6 +3,7 @@ package com.manning.readlinglist;
 import java.util.Arrays;
 import java.util.Collection;
 
+import javax.persistence.Entity;
 import javax.persistence.Id;
 
 import org.springframework.security.core.GrantedAuthority;
