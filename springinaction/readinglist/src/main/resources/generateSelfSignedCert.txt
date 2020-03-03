@@ -1,0 +1,74 @@
+Reference:
+https://alexanderzeitler.com/articles/Fixing-Chrome-missing_subjectAltName-selfsigned-cert-openssl/
+https://mkyong.com/linux/ssl-convert-pem-and-private-key-to-pkcs12/
+
+------------------------------------------------------------------------------------------------------
+I) SETUP
+1) Create createRootCA.sh with content:
+!/usr/bin/env bash
+mkdir ~/ssl/
+openssl genrsa -des3 -out ~/ssl/rootCA.key 2048
+openssl req -x509 -new -nodes -key ~/ssl/rootCA.key -sha256 -days 1024 -out ~/ssl/rootCA.pem
+
+2) Create reateselfsignedcertificate.sh with content:
+sudo openssl req -new -sha256 -nodes -out server.csr -newkey rsa:2048 -keyout server.key -config <( cat server.csr.cnf) 
+
+sudo openssl x509 -req -in server.csr -CA ~/ssl/rootCA.pem -CAkey ~/ssl/rootCA.key -CAcreateserial -out server.crt -days 500 -sha256 -extfile v3.ext
+
+(note: later if it does not work, remove sudo and manually execute in terminal)
+
+3) Create file server.csr.cnf with content:
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = dn
+
+[dn]
+C=US
+ST=New York
+L=Rochester
+O=End Point
+OU=Testing Domain
+emailAddress=your-administrative-address@your-awesome-existing-domain.com
+CN = localhost 
+
+(note: replace localhost with IP or site URL)
+
+4) create v3.ext file with content:
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = localhost
+
+(Note: replace localhost with IP adresses or site URL)
+
+-------------------------------------------------------------------------------------
+II) Execute:
+1) Run createRootCA.sh
+Command 1 will create rootCA.key
+Command 2 will create rootCA.pem
+=> we will import rootCA.pem into local PC, and use rootCA.pem to sign our self generated key. 
+
+
+2) Run reateselfsignedcertificate.sh
+(If it does not work, manually execute without sudo)
+Command 1: Generate certificate sign requestd server.csr and its private key server.key
+Command 2: Generate signed key server.crt using rootCA.pem, rootCA.key with v3.ext (Subject Alternative Name required by new Chrome) from server.csr
+
+Now, we can use server.crt as public key and server.key as private key in our server (with rootCA.pem installed in local PC)
+
+3)Convert crt to p12 from public key and private key, for using with Springboot:
+petervu$ openssl pkcs12 -export -in server.crt -inkey server.key -out server.p12
+
+4) Setup properties:
+server.port=8443
+server.ssl.key-store=server.p12
+server.ssl.key-store-type=PKCS12
+server.ssl.key-store-password=changeit
+server.ssl.key-password=changeit
+ 
+
